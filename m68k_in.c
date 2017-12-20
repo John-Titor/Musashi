@@ -166,6 +166,7 @@ M68KMAKE_TABLE_FOOTER
 void m68ki_build_opcode_table(void)
 {
 	opcode_handler_struct *ostruct;
+	int cycle_cost;
 	int instr;
 	int i;
 	int j;
@@ -213,8 +214,17 @@ void m68ki_build_opcode_table(void)
 				m68ki_instruction_jump_table[instr] = ostruct->opcode_handler;
 				for(k=0;k<NUM_CPU_TYPES;k++)
 					m68ki_cycles[k][instr] = ostruct->cycles[k];
+				// For all shift operations with known shift distance (encoded in instruction word)
 				if((instr & 0xf000) == 0xe000 && (!(instr & 0x20)))
-					m68ki_cycles[0][instr] = m68ki_cycles[1][instr] = ostruct->cycles[k] + ((((j-1)&7)+1)<<1);
+				{
+					// On the 68000 and 68010 shift distance affect execution time.
+					// Add the cycle cost of shifting; 2 times the shift distance
+					cycle_cost = ((((i-1)&7)+1)<<1);
+					m68ki_cycles[0][instr] += cycle_cost;
+					m68ki_cycles[1][instr] += cycle_cost;
+					// On the 68020 shift distance does not affect execution time
+					m68ki_cycles[2][instr] += 0;
+				}
 			}
 		}
 		ostruct++;
@@ -418,7 +428,7 @@ and       32  er    .     1100...010......  A+-DXWLdxI  U U U    6   6   2
 and        8  re    .     1100...100......  A+-DXWL...  U U U    8   8   4
 and       16  re    .     1100...101......  A+-DXWL...  U U U    8   8   4
 and       32  re    .     1100...110......  A+-DXWL...  U U U   12  12   4
-andi      16  toc   .     0000001000111100  ..........  U U U   20  16  12
+andi       8  toc   .     0000001000111100  ..........  U U U   20  16  12
 andi      16  tos   .     0000001001111100  ..........  S S S   20  16  12
 andi       8  .     d     0000001000000...  ..........  U U U    8   8   2
 andi       8  .     .     0000001000......  A+-DXWL...  U U U   12  12   4
@@ -440,7 +450,7 @@ asl        8  r     .     1110...100100...  ..........  U U U    6   6   8
 asl       16  r     .     1110...101100...  ..........  U U U    6   6   8
 asl       32  r     .     1110...110100...  ..........  U U U    8   8   8
 asl       16  .     .     1110000111......  A+-DXWL...  U U U    8   8   6
-bcc        8  .     .     0110............  ..........  U U U    8   8   6
+bcc        8  .     .     0110............  ..........  U U U   10  10   6
 bcc       16  .     .     0110....00000000  ..........  U U U   10  10   6
 bcc       32  .     .     0110....11111111  ..........  . . U    .   .   6
 bchg       8  r     .     0000...101......  A+-DXWL...  U U U    8   8   4
@@ -545,7 +555,7 @@ cpgen     32  .     .     1111...000......  ..........  . . U    .   .   4  unem
 cpscc     32  .     .     1111...001......  ..........  . . U    .   .   4  unemulated
 cptrapcc  32  .     .     1111...001111...  ..........  . . U    .   .   4  unemulated
 dbt       16  .     .     0101000011001...  ..........  U U U   12  12   6
-dbf       16  .     .     0101000111001...  ..........  U U U   14  14   6
+dbf       16  .     .     0101000111001...  ..........  U U U   12  12   6
 dbcc      16  .     .     0101....11001...  ..........  U U U   12  12   6
 divs      16  .     d     1000...111000...  ..........  U U U  158 122  56
 divs      16  .     .     1000...111......  A+-DXWLdxI  U U U  158 122  56
@@ -559,7 +569,7 @@ eor       16  .     d     1011...101000...  ..........  U U U    4   4   2
 eor       16  .     .     1011...101......  A+-DXWL...  U U U    8   8   4
 eor       32  .     d     1011...110000...  ..........  U U U    8   6   2
 eor       32  .     .     1011...110......  A+-DXWL...  U U U   12  12   4
-eori      16  toc   .     0000101000111100  ..........  U U U   20  16  12
+eori       8  toc   .     0000101000111100  ..........  U U U   20  16  12
 eori      16  tos   .     0000101001111100  ..........  S S S   20  16  12
 eori       8  .     d     0000101000000...  ..........  U U U    8   8   2
 eori       8  .     .     0000101000......  A+-DXWL...  U U U   12  12   4
@@ -682,17 +692,17 @@ move      32  tou   .     0100111001100...  ..........  S S S    4   6   2
 movec     32  cr    .     0100111001111010  ..........  . S S    .  12   6
 movec     32  rc    .     0100111001111011  ..........  . S S    .  10  12
 movem     16  re    pd    0100100010100...  ..........  U U U    8   8   4
-movem     16  re    .     0100100010......  A..DXWL...  U U U    8   8   4
+movem     16  re    .     0100100010......  A..DXWL...  U U U    4   4   4  cycles for hypothetical d addressing mode (020 unverified)
 movem     32  re    pd    0100100011100...  ..........  U U U    8   8   4
-movem     32  re    .     0100100011......  A..DXWL...  U U U    8   8   4
+movem     32  re    .     0100100011......  A..DXWL...  U U U    0   0   4  cycles for hypothetical d addressing mode (020 unverified)
 movem     16  er    pi    0100110010011...  ..........  U U U   12  12   8
 movem     16  er    pcdi  0100110010111010  ..........  U U U   16  16   9
 movem     16  er    pcix  0100110010111011  ..........  U U U   18  18  11
-movem     16  er    .     0100110010......  A..DXWL...  U U U   12  12   8
+movem     16  er    .     0100110010......  A..DXWL...  U U U    8   8   8  cycles for hypothetical d addressing mode (020 unverified)
 movem     32  er    pi    0100110011011...  ..........  U U U   12  12   8
-movem     32  er    pcdi  0100110011111010  ..........  U U U   20  20   9
-movem     32  er    pcix  0100110011111011  ..........  U U U   22  22  11
-movem     32  er    .     0100110011......  A..DXWL...  U U U   12  12   8
+movem     32  er    pcdi  0100110011111010  ..........  U U U   16  16   9
+movem     32  er    pcix  0100110011111011  ..........  U U U   18  18  11
+movem     32  er    .     0100110011......  A..DXWL...  U U U    4   4   8  cycles for hypothetical d addressing mode (020 unverified)
 movep     16  er    .     0000...100001...  ..........  U U U   16  16  12
 movep     32  er    .     0000...101001...  ..........  U U U   24  24  18
 movep     16  re    .     0000...110001...  ..........  U U U   16  16  11
@@ -737,7 +747,7 @@ or        32  er    .     1000...010......  A+-DXWLdxI  U U U    6   6   2
 or         8  re    .     1000...100......  A+-DXWL...  U U U    8   8   4
 or        16  re    .     1000...101......  A+-DXWL...  U U U    8   8   4
 or        32  re    .     1000...110......  A+-DXWL...  U U U   12  12   4
-ori       16  toc   .     0000000000111100  ..........  U U U   20  16  12
+ori        8  toc   .     0000000000111100  ..........  U U U   20  16  12
 ori       16  tos   .     0000000001111100  ..........  S S S   20  16  12
 ori        8  .     d     0000000000000...  ..........  U U U    8   8   2
 ori        8  .     .     0000000000......  A+-DXWL...  U U U   12  12   4
@@ -1217,9 +1227,10 @@ M68KMAKE_OP(adda, 16, ., a)
 
 M68KMAKE_OP(adda, 16, ., .)
 {
+	signed short src = MAKE_INT_16(M68KMAKE_GET_OPER_AY_16);
 	uint* r_dst = &AX;
 
-	*r_dst = MASK_OUT_ABOVE_32(*r_dst + MAKE_INT_16(M68KMAKE_GET_OPER_AY_16));
+	*r_dst = MASK_OUT_ABOVE_32(*r_dst + src);
 }
 
 
@@ -1241,9 +1252,10 @@ M68KMAKE_OP(adda, 32, ., a)
 
 M68KMAKE_OP(adda, 32, ., .)
 {
+	uint src = M68KMAKE_GET_OPER_AY_32;
 	uint* r_dst = &AX;
 
-	*r_dst = MASK_OUT_ABOVE_32(*r_dst + M68KMAKE_GET_OPER_AY_32);
+	*r_dst = MASK_OUT_ABOVE_32(*r_dst + src);
 }
 
 
@@ -1795,9 +1807,9 @@ M68KMAKE_OP(andi, 32, ., .)
 }
 
 
-M68KMAKE_OP(andi, 16, toc, .)
+M68KMAKE_OP(andi, 8, toc, .)
 {
-	m68ki_set_ccr(m68ki_get_ccr() & OPER_I_16());
+	m68ki_set_ccr(m68ki_get_ccr() & OPER_I_8());
 }
 
 
@@ -4379,9 +4391,11 @@ M68KMAKE_OP(dbf, 16, ., .)
 		REG_PC -= 2;
 		m68ki_trace_t0();			   /* auto-disable (see m68kcpu.h) */
 		m68ki_branch_16(offset);
+		USE_CYCLES(CYC_DBCC_F_NOEXP);
 		return;
 	}
 	REG_PC += 2;
+	USE_CYCLES(CYC_DBCC_F_EXP);
 }
 
 
@@ -5113,9 +5127,9 @@ M68KMAKE_OP(eori, 32, ., .)
 }
 
 
-M68KMAKE_OP(eori, 16, toc, .)
+M68KMAKE_OP(eori, 8, toc, .)
 {
-	m68ki_set_ccr(m68ki_get_ccr() ^ OPER_I_16());
+	m68ki_set_ccr(m68ki_get_ccr() ^ OPER_I_8());
 }
 
 
@@ -8076,9 +8090,9 @@ M68KMAKE_OP(ori, 32, ., .)
 }
 
 
-M68KMAKE_OP(ori, 16, toc, .)
+M68KMAKE_OP(ori, 8, toc, .)
 {
-	m68ki_set_ccr(m68ki_get_ccr() | OPER_I_16());
+	m68ki_set_ccr(m68ki_get_ccr() | OPER_I_8());
 }
 
 
@@ -9217,6 +9231,7 @@ M68KMAKE_OP(scc, 8, ., d)
 	if(M68KMAKE_CC)
 	{
 		DY |= 0xff;
+		USE_CYCLES(CYC_SCC_R_TRUE);
 		return;
 	}
 	DY &= 0xffffff00;
@@ -9237,7 +9252,10 @@ M68KMAKE_OP(stop, 0, ., .)
 		m68ki_trace_t0();			   /* auto-disable (see m68kcpu.h) */
 		CPU_STOPPED |= STOP_LEVEL_STOP;
 		m68ki_set_sr(new_sr);
-		m68ki_remaining_cycles = 0;
+		if(m68ki_remaining_cycles >= CYC_INSTRUCTION[REG_IR])
+			m68ki_remaining_cycles = CYC_INSTRUCTION[REG_IR];
+		else
+			USE_ALL_CYCLES();
 		return;
 	}
 	m68ki_exception_privilege_violation();
@@ -9438,9 +9456,10 @@ M68KMAKE_OP(suba, 16, ., a)
 
 M68KMAKE_OP(suba, 16, ., .)
 {
+	signed short src = MAKE_INT_16(M68KMAKE_GET_OPER_AY_16);
 	uint* r_dst = &AX;
 
-	*r_dst = MASK_OUT_ABOVE_32(*r_dst - MAKE_INT_16(M68KMAKE_GET_OPER_AY_16));
+	*r_dst = MASK_OUT_ABOVE_32(*r_dst - src);
 }
 
 
@@ -9462,9 +9481,10 @@ M68KMAKE_OP(suba, 32, ., a)
 
 M68KMAKE_OP(suba, 32, ., .)
 {
+	uint src = M68KMAKE_GET_OPER_AY_32;
 	uint* r_dst = &AX;
 
-	*r_dst = MASK_OUT_ABOVE_32(*r_dst - M68KMAKE_GET_OPER_AY_32);
+	*r_dst = MASK_OUT_ABOVE_32(*r_dst - src);
 }
 
 

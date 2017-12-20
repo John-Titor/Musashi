@@ -348,7 +348,7 @@
 #define CYC_BCC_NOTAKE_W m68ki_cpu.cyc_bcc_notake_w
 #define CYC_DBCC_F_NOEXP m68ki_cpu.cyc_dbcc_f_noexp
 #define CYC_DBCC_F_EXP   m68ki_cpu.cyc_dbcc_f_exp
-#define CYC_SCC_R_FALSE  m68ki_cpu.cyc_scc_r_false
+#define CYC_SCC_R_TRUE   m68ki_cpu.cyc_scc_r_true
 #define CYC_MOVEM_W      m68ki_cpu.cyc_movem_w
 #define CYC_MOVEM_L      m68ki_cpu.cyc_movem_l
 #define CYC_SHIFT        m68ki_cpu.cyc_shift
@@ -522,6 +522,13 @@
 				SET_CYCLES(0); \
 				CPU_INT_CYCLES = 0; \
 				return m68ki_initial_cycles; \
+			} \
+			/* ensure we don't re-enter execution loop after an
+			   address error if there's no more cycles remaining */ \
+			if(GET_CYCLES() <= 0) \
+			{ \
+				/* return how many clocks we used */ \
+				return m68ki_initial_cycles - GET_CYCLES(); \
 			} \
 		}
 
@@ -745,7 +752,7 @@
 #define USE_CYCLES(A)    m68ki_remaining_cycles -= (A)
 #define SET_CYCLES(A)    m68ki_remaining_cycles = A
 #define GET_CYCLES()     m68ki_remaining_cycles
-#define USE_ALL_CYCLES() m68ki_remaining_cycles = 0
+#define USE_ALL_CYCLES() m68ki_remaining_cycles %= CYC_INSTRUCTION[REG_IR]
 
 
 
@@ -829,7 +836,7 @@ typedef struct
 	uint cyc_bcc_notake_w;
 	uint cyc_dbcc_f_noexp;
 	uint cyc_dbcc_f_exp;
-	uint cyc_scc_r_false;
+	uint cyc_scc_r_true;
 	uint cyc_movem_w;
 	uint cyc_movem_l;
 	uint cyc_shift;
@@ -1725,8 +1732,8 @@ INLINE void m68ki_exception_trap(uint vector)
 
 	m68ki_jump_vector(vector);
 
-	/* Use up some clock cycles */
-	USE_CYCLES(CYC_EXCEPTION[vector]);
+	/* Use up some clock cycles and undo the instruction's cycles */
+	USE_CYCLES(CYC_EXCEPTION[vector] - CYC_INSTRUCTION[REG_IR]);
 }
 
 /* Trap#n stacks a 0 frame but behaves like group2 otherwise */
@@ -1736,8 +1743,8 @@ INLINE void m68ki_exception_trapN(uint vector)
 	m68ki_stack_frame_0000(REG_PC, sr, vector);
 	m68ki_jump_vector(vector);
 
-	/* Use up some clock cycles */
-	USE_CYCLES(CYC_EXCEPTION[vector]);
+	/* Use up some clock cycles and undo the instruction's cycles */
+	USE_CYCLES(CYC_EXCEPTION[vector] - CYC_INSTRUCTION[REG_IR]);
 }
 
 /* Exception for trace mode */
@@ -1881,8 +1888,11 @@ m68k_read_memory_8(0x00ffff01);
 
 	m68ki_jump_vector(EXCEPTION_ADDRESS_ERROR);
 
-	/* Use up some clock cycles and undo the instruction's cycles */
-	USE_CYCLES(CYC_EXCEPTION[EXCEPTION_ADDRESS_ERROR] - CYC_INSTRUCTION[REG_IR]);
+	/* Use up some clock cycles. Note that we don't need to undo the 
+	instruction's cycles here as we've longjmp:ed directly from the
+	instruction handler without passing the part of the excecute loop
+	that deducts instruction cycles */
+	USE_CYCLES(CYC_EXCEPTION[EXCEPTION_ADDRESS_ERROR]); 
 }
 
 

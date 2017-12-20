@@ -347,7 +347,7 @@ int g_jmp_cycle_table[13] =
 	 0, /* EA_MODE_PD   */
 	 0, /* EA_MODE_PD7  */
 	 6, /* EA_MODE_DI   */
-	 8, /* EA_MODE_IX   */
+	 10, /* EA_MODE_IX   */
 	 6, /* EA_MODE_AW   */
 	 8, /* EA_MODE_AL   */
 	 6, /* EA_MODE_PCDI */
@@ -395,7 +395,7 @@ int g_lea_cycle_table[13] =
 int g_pea_cycle_table[13] =
 {
 	 0, /* EA_MODE_NONE */
-	 4, /* EA_MODE_AI   */
+	 6, /* EA_MODE_AI   */
 	 0, /* EA_MODE_PI   */
 	 0, /* EA_MODE_PI7  */
 	 0, /* EA_MODE_PD   */

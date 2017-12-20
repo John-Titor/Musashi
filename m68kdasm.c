@@ -979,7 +979,7 @@ static void d68020_bfexts(void)
 		sprintf(width, "D%d", extension&7);
 	else
 		sprintf(width, "%d", g_5bit_data_table[extension&31]);
-	sprintf(g_dasm_str, "bfexts  D%d, %s {%s:%s}; (2+)", (extension>>12)&7, get_ea_mode_str_8(g_cpu_ir), offset, width);
+	sprintf(g_dasm_str, "bfexts  %s {%s:%s}, D%d; (2+)", get_ea_mode_str_8(g_cpu_ir), offset, width, (extension>>12)&7);
 }
 
 static void d68020_bfextu(void)
@@ -1000,7 +1000,7 @@ static void d68020_bfextu(void)
 		sprintf(width, "D%d", extension&7);
 	else
 		sprintf(width, "%d", g_5bit_data_table[extension&31]);
-	sprintf(g_dasm_str, "bfextu  D%d, %s {%s:%s}; (2+)", (extension>>12)&7, get_ea_mode_str_8(g_cpu_ir), offset, width);
+	sprintf(g_dasm_str, "bfextu  %s {%s:%s}, D%d; (2+)", get_ea_mode_str_8(g_cpu_ir), offset, width, (extension>>12)&7);
 }
 
 static void d68020_bfffo(void)
@@ -1021,7 +1021,7 @@ static void d68020_bfffo(void)
 		sprintf(width, "D%d", extension&7);
 	else
 		sprintf(width, "%d", g_5bit_data_table[extension&31]);
-	sprintf(g_dasm_str, "bfffo   D%d, %s {%s:%s}; (2+)", (extension>>12)&7, get_ea_mode_str_8(g_cpu_ir), offset, width);
+	sprintf(g_dasm_str, "bfffo   %s {%s:%s}, D%d; (2+)", get_ea_mode_str_8(g_cpu_ir), offset, width, (extension>>12)&7);
 }
 
 static void d68020_bfins(void)
@@ -1161,7 +1161,7 @@ static void d68020_cas_8(void)
 	uint extension;
 	LIMIT_CPU_TYPES(M68020_PLUS);
 	extension = read_imm_16();
-	sprintf(g_dasm_str, "cas.b   D%d, D%d, %s; (2+)", extension&7, (extension>>8)&7, get_ea_mode_str_8(g_cpu_ir));
+	sprintf(g_dasm_str, "cas.b   D%d, D%d, %s; (2+)", extension&7, (extension>>6)&7, get_ea_mode_str_8(g_cpu_ir));
 }
 
 static void d68020_cas_16(void)
@@ -1169,7 +1169,7 @@ static void d68020_cas_16(void)
 	uint extension;
 	LIMIT_CPU_TYPES(M68020_PLUS);
 	extension = read_imm_16();
-	sprintf(g_dasm_str, "cas.w   D%d, D%d, %s; (2+)", extension&7, (extension>>8)&7, get_ea_mode_str_16(g_cpu_ir));
+	sprintf(g_dasm_str, "cas.w   D%d, D%d, %s; (2+)", extension&7, (extension>>6)&7, get_ea_mode_str_16(g_cpu_ir));
 }
 
 static void d68020_cas_32(void)
@@ -1177,7 +1177,7 @@ static void d68020_cas_32(void)
 	uint extension;
 	LIMIT_CPU_TYPES(M68020_PLUS);
 	extension = read_imm_16();
-	sprintf(g_dasm_str, "cas.l   D%d, D%d, %s; (2+)", extension&7, (extension>>8)&7, get_ea_mode_str_32(g_cpu_ir));
+	sprintf(g_dasm_str, "cas.l   D%d, D%d, %s; (2+)", extension&7, (extension>>6)&7, get_ea_mode_str_32(g_cpu_ir));
 }
 
 static void d68020_cas2_16(void)
@@ -1191,7 +1191,7 @@ f e d c b a 9 8 7 6 5 4 3 2 1 0
 	uint extension;
 	LIMIT_CPU_TYPES(M68020_PLUS);
 	extension = read_imm_32();
-	sprintf(g_dasm_str, "cas2.w  D%d:D%d:D%d:D%d, (%c%d):(%c%d); (2+)",
+	sprintf(g_dasm_str, "cas2.w  D%d:D%d, D%d:D%d, (%c%d):(%c%d); (2+)",
 		(extension>>16)&7, extension&7, (extension>>22)&7, (extension>>6)&7,
 		BIT_1F(extension) ? 'A' : 'D', (extension>>28)&7,
 		BIT_F(extension) ? 'A' : 'D', (extension>>12)&7);
@@ -1202,7 +1202,7 @@ static void d68020_cas2_32(void)
 	uint extension;
 	LIMIT_CPU_TYPES(M68020_PLUS);
 	extension = read_imm_32();
-	sprintf(g_dasm_str, "cas2.l  D%d:D%d:D%d:D%d, (%c%d):(%c%d); (2+)",
+	sprintf(g_dasm_str, "cas2.l  D%d:D%d, D%d:D%d, (%c%d):(%c%d); (2+)",
 		(extension>>16)&7, extension&7, (extension>>22)&7, (extension>>6)&7,
 		BIT_1F(extension) ? 'A' : 'D', (extension>>28)&7,
 		BIT_F(extension) ? 'A' : 'D', (extension>>12)&7);
@@ -2239,7 +2239,7 @@ static void d68020_mull(void)
 	extension = read_imm_16();
 
 	if(BIT_A(extension))
-		sprintf(g_dasm_str, "mul%c.l %s, D%d-D%d; (2+)", BIT_B(extension) ? 's' : 'u', get_ea_mode_str_32(g_cpu_ir), extension&7, (extension>>12)&7);
+		sprintf(g_dasm_str, "mul%c.l %s, D%d:D%d; (2+)", BIT_B(extension) ? 's' : 'u', get_ea_mode_str_32(g_cpu_ir), extension&7, (extension>>12)&7);
 	else
 		sprintf(g_dasm_str, "mul%c.l  %s, D%d; (2+)", BIT_B(extension) ? 's' : 'u', get_ea_mode_str_32(g_cpu_ir), (extension>>12)&7);
 }
